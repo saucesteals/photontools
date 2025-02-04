@@ -5,15 +5,22 @@
 <h3>A browser extension for Photon</h3>
 </div>
 
-<img src="./assets/example.png" alt="example" />
-
----
-
 ## Getting Started
 
 1. Download the latest version of the extension from the [releases page](https://github.com/saucesteals/photontools/releases).
 2. Navigate to `chrome://extensions/`.
 3. Drop the downloaded ZIP file into the page to install the extension.
+
+## Features
+### Live display of the buys and sells of unlimited wallets embedded in the chart
+
+<img src="./assets/tracker.png" alt="tracker" />
+
+### Highlights coins currently above $70K in market cap
+
+<img src="./assets/memescope.png" alt="memescope" height="500px" />
+
+---
 
 ## Development
 
