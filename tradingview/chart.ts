@@ -60,7 +60,15 @@ export class Chart {
 			},
 			label: wallet.symbol,
 			text: [
-				`${wallet.nickname} (${wallet.symbol}) ${swap.type === "buy" ? "bought" : "sold"} ${swap.tokensAmount} tokens totaling ${swap.usdAmount} at ${swap.priceUsd}/token (${swap.priceQuote} SOL/token) on ${new Date(swap.timestamp).toLocaleString()}`,
+				`${wallet.nickname} (${wallet.symbol}) ${
+					swap.type === "buy" ? "🟢 bought" : "🔴 sold"
+				} ${Number(swap.tokensAmount).toLocaleString()} tokens for $${Number(
+					swap.usdAmount,
+				).toLocaleString()} at 💰 $${Number(swap.priceUsd).toLocaleString()}/token (${Number(
+					swap.priceQuote,
+				).toFixed(
+					4,
+				)} ◎ SOL/token) \non ${new Date(swap.timestamp).toLocaleString()}`,
 			],
 			tickmark: swap.timestamp,
 			highlightByAuthor: true,
@@ -68,7 +76,13 @@ export class Chart {
 	}
 
 	refresh() {
-		window.inst.activeChart()._chartWidget.refreshMarks();
+		const chart = window.inst?.activeChart();
+		if (!chart) {
+			log.warn("Chart not yet initialized, skipping refresh");
+			return;
+		}
+
+		chart._chartWidget.refreshMarks();
 	}
 
 	async init() {
