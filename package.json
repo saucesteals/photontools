@@ -10,6 +10,7 @@
 		"package": "plasmo package"
 	},
 	"dependencies": {
+		"@plasmohq/storage": "^1.13.0",
 		"plasmo": "0.89.4",
 		"react": "18.2.0",
 		"react-dom": "18.2.0"
@@ -23,7 +24,13 @@
 		"typescript": "5.3.3"
 	},
 	"manifest": {
-		"permissions": ["storage"],
+		"manifest_version": 3,
+		"name": "Photontools",
+		"version": "1.0",
+		"permissions": [
+			"storage",
+			"activeTab"
+		],
 		"host_permissions": ["*://*.tinyastro.io/*"]
 	}
 }

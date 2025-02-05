@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Storage } from "@plasmohq/storage";
 
 import type { Wallet } from "~photon/photon";
 
@@ -45,6 +46,18 @@ export const WalletManager = () => {
 	const [wallets, setWallets] = useState<Wallet[]>([]);
 	const [newWallet, setNewWallet] = useState<Partial<Wallet>>({});
 	const [isSymbolEdited, setIsSymbolEdited] = useState(false);
+	const [bubbleSize, setBubbleSize] = useState(15);
+
+	// Initialize storage and load bubble size
+	useEffect(() => {
+		const storage = new Storage();
+		storage.get("bubbleSize").then((size) => {
+			if (size) {
+				setBubbleSize(Number(size));
+				window.postMessage({ type: "SET_BUBBLE_SIZE", size: Number(size) }, "*");
+			}
+		});
+	}, []);
 
 	const onWalletsChange = (wallets: Wallet[]) => {
 		window.postMessage({ type: "SET_WALLETS", wallets: wallets }, "*");
@@ -61,6 +74,7 @@ export const WalletManager = () => {
 		const handleMessage = (event: MessageEvent) => {
 			if (event.data.type === "CHART_INITIALIZED") {
 				onWalletsChange(wallets);
+				window.postMessage({ type: "SET_BUBBLE_SIZE", size: bubbleSize }, "*");
 			}
 		};
 
@@ -68,7 +82,7 @@ export const WalletManager = () => {
 		return () => {
 			window.removeEventListener("message", handleMessage);
 		};
-	}, [wallets]);
+	}, [wallets, bubbleSize]);
 
 	const saveWallets = (updatedWallets: Wallet[]) => {
 		chrome.runtime.sendMessage(
@@ -112,6 +126,13 @@ export const WalletManager = () => {
 		saveWallets(updatedWallets);
 	};
 
+	const handleBubbleSizeChange = async (size: number) => {
+		setBubbleSize(size);
+		window.postMessage({ type: "SET_BUBBLE_SIZE", size }, "*");
+		const storage = new Storage();
+		await storage.set("bubbleSize", size);
+	};
+
 	return (
 		<div
 			style={{
@@ -126,6 +147,47 @@ export const WalletManager = () => {
 		>
 			<div style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
 				Track Wallets
+			</div>
+			<div style={{ padding: "1rem", backgroundColor: "rgba(106, 96, 232, 0.05)", borderRadius: "8px", }}>
+				<div style={{ 
+					display: "flex", 
+					alignItems: "center", 
+					gap: "1rem",
+					marginBottom: "1rem"
+				}}>
+					<div style={{
+						fontSize: "0.9rem",
+						color: "rgb(181, 183, 218)",
+						fontWeight: 500
+					}}>
+						Bubble Size: <span style={{ color: "white" }}>{bubbleSize}px</span>
+					</div>
+					<div style={{
+						width: `${bubbleSize}px`, 
+						height: `${bubbleSize}px`,
+						backgroundColor: "rgb(106, 96, 232)",
+						boxShadow: "0 0 10px rgba(106, 96, 232, 0.3)",
+						borderRadius: "50%",
+						transition: "all 0.2s ease",
+					}} />
+				</div>
+				<input
+					type="range"
+					min="15"
+					max="35"
+					step="0.1"
+					value={bubbleSize}
+					onChange={(e) => handleBubbleSizeChange(Number(e.target.value))}
+					style={{
+						width: "100%",
+						accentColor: "rgb(106, 96, 232)", 
+						height: "6px",
+						borderRadius: "3px",
+						cursor: "pointer",
+						WebkitAppearance: "none",
+						background: "rgba(106, 96, 232, 0.1)",
+					}}
+				/>
 			</div>
 			<div>
 				<input

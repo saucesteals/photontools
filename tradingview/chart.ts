@@ -8,8 +8,22 @@ const log = createLogger("tradingview/chart");
 
 export class Chart {
 	private marks: Mark[];
-	constructor() {
+	private bubbleSize: number;
+	constructor(bubbleSize: number) {
 		this.marks = [];
+		this.bubbleSize = bubbleSize;
+	}
+
+	setBubbleSize(size: number) {
+		this.bubbleSize = size;
+
+		this.marks = this.marks.map(mark => ({
+			...mark,
+			minSize: size
+		}));
+		if (window.inst?.activeChart()) {
+			this.refresh();
+		}
 	}
 
 	addMark(mark: Mark) {
@@ -28,7 +42,7 @@ export class Chart {
 			id: swap.id,
 			time: swap.timestamp,
 			labelFontColor: text,
-			minSize: 35,
+			minSize: this.bubbleSize,
 			data: {
 				type: swap.type,
 				timestamp: swap.timestamp,
@@ -46,7 +60,13 @@ export class Chart {
 			},
 			label: wallet.symbol,
 			text: [
-				`${wallet.nickname} (${wallet.symbol}) ${swap.type === "buy" ? "bought" : "sold"} ${swap.tokensAmount} tokens totaling ${swap.usdAmount} at ${swap.priceUsd}/token (${swap.priceQuote} SOL/token) on ${new Date(swap.timestamp).toLocaleString()}`,
+				`${wallet.nickname} (${wallet.symbol}) ${
+					swap.type === "buy" ? "🟢 bought" : "🔴 sold"
+				} ${Number(swap.tokensAmount).toLocaleString()} tokens for $${
+					Number(swap.usdAmount).toLocaleString()
+				} at 💰 $${Number(swap.priceUsd).toLocaleString()}/token (${
+					Number(swap.priceQuote).toFixed(4)
+				} ◎ SOL/token) \non ${new Date(swap.timestamp).toLocaleString()}`,
 			],
 			tickmark: swap.timestamp,
 			highlightByAuthor: true,
@@ -54,7 +74,11 @@ export class Chart {
 	}
 
 	refresh() {
-		window.inst.activeChart()._chartWidget.refreshMarks();
+		if (window.inst?.activeChart()) {
+			window.inst.activeChart()._chartWidget.refreshMarks();
+		} else {
+			log.warn("Chart not yet initialized, skipping refresh");
+		}
 	}
 
 	async init() {
