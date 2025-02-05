@@ -1,7 +1,7 @@
 {
 	"name": "photontools",
 	"displayName": "Photontools",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "Photon Tools",
 	"scripts": {
 		"format": "biome check",
