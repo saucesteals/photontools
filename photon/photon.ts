@@ -34,6 +34,23 @@ export const parseHumanReadableNumber = (text: string) => {
 	return number;
 };
 
+export const formatHumanReadableNumber = (number: number | string) => {
+	number = Number(number);
+	if (number < 1) {
+		return number.toFixed(5);
+	}
+	if (number < 1000) {
+		return number.toFixed(2);
+	}
+	if (number < 1000000) {
+		return `${(number / 1000).toFixed(2)}K`;
+	}
+	if (number < 1000000000) {
+		return `${(number / 1000000).toFixed(2)}M`;
+	}
+	return `${(number / 1000000000).toFixed(2)}B`;
+};
+
 export const getPoolId = () => {
 	return window.taConfig.show["pool-id"] as number;
 };

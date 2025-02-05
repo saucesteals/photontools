@@ -1,7 +1,6 @@
 import { createLogger } from "~logging";
-
-import type { Swap } from "../photon/cable";
-import type { Wallet } from "../photon/photon";
+import type { Swap } from "~photon/cable";
+import { type Wallet, formatHumanReadableNumber } from "~photon/photon";
 import type { Mark } from "./types";
 
 const log = createLogger("tradingview/chart");
@@ -60,15 +59,13 @@ export class Chart {
 			},
 			label: wallet.symbol,
 			text: [
-				`${wallet.nickname} (${wallet.symbol}) ${
+				`${wallet.nickname} ${
 					swap.type === "buy" ? "🟢 bought" : "🔴 sold"
-				} ${Number(swap.tokensAmount).toLocaleString()} tokens for $${Number(
+				} ${formatHumanReadableNumber(swap.tokensAmount)} tokens for $${formatHumanReadableNumber(
 					swap.usdAmount,
-				).toLocaleString()} at 💰 $${Number(swap.priceUsd).toLocaleString()}/token (${Number(
-					swap.priceQuote,
-				).toFixed(
-					4,
-				)} ◎ SOL/token) \non ${new Date(swap.timestamp).toLocaleString()}`,
+				)} at $${formatHumanReadableNumber(swap.priceUsd)}/token on ${new Date(
+					swap.timestamp * 1000,
+				).toLocaleString()}`,
 			],
 			tickmark: swap.timestamp,
 			highlightByAuthor: true,
