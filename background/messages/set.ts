@@ -1,9 +1,5 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging";
-import {
-	type Preferences,
-	getPreference,
-	updatePreferences,
-} from "~storage/storage";
+import { type Preferences, updatePreferences } from "~storage/storage";
 
 const handler: PlasmoMessaging.MessageHandler<Partial<Preferences>> = async (
 	req,

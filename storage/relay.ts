@@ -6,9 +6,7 @@ export const getRelayPreference = async <T extends keyof Preferences>(
 ): Promise<Preferences[T]> => {
 	return sendToBackgroundViaRelay({
 		name: "get",
-		body: {
-			key,
-		},
+		body: key,
 	});
 };
 
