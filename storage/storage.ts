@@ -8,11 +8,13 @@ export const storage = new Storage({
 export type Preferences = {
 	wallets: Wallet[];
 	minMarkSize: number;
+	colorPaletteIndex: number;
 };
 
 const defaultPreferences: Preferences = {
 	wallets: [],
 	minMarkSize: 35,
+	colorPaletteIndex: 0,
 };
 
 export const updatePreferences = async (preferences: Partial<Preferences>) => {
@@ -31,4 +33,9 @@ export const getPreference = async <T extends keyof Preferences>(
 	}
 
 	return value;
+};
+
+export const getColorPaletteIndex = async (): Promise<number> => {
+	const index = await getPreference("colorPaletteIndex");
+	return index;
 };

@@ -1,5 +1,4 @@
 import type { PlasmoCSConfig } from "plasmo";
-import React from "react";
 import { createRoot } from "react-dom/client";
 import { createLogger } from "~logging";
 import { WalletManager } from "~manager/manager";

@@ -1,6 +1,11 @@
 import type { PlasmoCSConfig } from "plasmo";
 import { createLogger } from "~logging";
 import { parseHumanReadableNumber } from "~photon/photon";
+import { createRoot } from "react-dom/client";
+import { MemeScope } from "~memescope/memescope";
+import React from "react";
+import { getRelayPreference } from "~storage/relay";
+import { palettes } from "~constants/colorPalettes";
 
 const log = createLogger("contents/memescope");
 
@@ -44,7 +49,7 @@ const processHref = (node: Node) => {
 	processMarketCap(mktCap);
 };
 
-const processMarketCap = (node: Node) => {
+const processMarketCap = async (node: Node) => {
 	if (node instanceof Text) {
 		if (!node.parentNode) {
 			return;
@@ -86,15 +91,55 @@ const processMarketCap = (node: Node) => {
 		throw new Error("Invalid market cap value");
 	}
 
-	if (marketCapValue >= BORDER_MARKET_CAP_THRESHOLD) {
-		container.style.border = "2px solid";
-		container.style.borderImage =
-			"linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet) 1";
-		container.style.boxShadow = "0 0 10px rgba(255, 255, 255, 0.5)";
-	} else {
-		container.style.border = "none";
-		container.style.boxShadow = "none";
+	const updateBorder = async (selectedPalette: string[]) => {
+		if (marketCapValue >= BORDER_MARKET_CAP_THRESHOLD) {
+			container.style.border = "2px solid";
+			container.style.borderImage =
+				`linear-gradient(to right, ${selectedPalette.join(', ')}) 1`;
+			container.style.boxShadow = "0 0 10px rgba(255, 255, 255, 0.5)";
+		} else {
+			container.style.border = "none";
+			container.style.boxShadow = "none";
+		}
+	};
+
+	const paletteIndex = await getRelayPreference("colorPaletteIndex");
+	await updateBorder(palettes[paletteIndex]);
+
+	const oldListener = container.getAttribute('data-palette-listener');
+	if (oldListener) {
+		window.removeEventListener('paletteChange', window[oldListener as keyof typeof window] as EventListener);
 	}
+
+	const listenerName = `paletteListener_${Math.random().toString(36).slice(2)}`;
+	const listener = (e: CustomEvent) => {
+		updateBorder(e.detail.palette);
+	};
+
+	container.dataset.paletteListener = listenerName;
+	(container as any)[listenerName] = listener;
+
+	window.addEventListener('paletteChange', listener as EventListener);
+};
+
+const mountMemescopeMenu = async () => {
+	const body = document.querySelector(".c-body");
+	if (!body) throw new Error("No body found");
+
+	const fifthChild = body.children[4];
+	if (!fifthChild) throw new Error("No fifth child found");
+
+	new MutationObserver((_, observer) => {
+		observer.disconnect();
+		const container = document.createElement("div");
+		const row = fifthChild.querySelector(".l-row.u-align-items-center.u-mb-xxs");
+		if (!row) throw new Error("No row found");
+		createRoot(container).render(React.createElement(MemeScope));
+		row.appendChild(container);
+	}).observe(fifthChild, {
+		childList: true,
+		subtree: true
+	});
 };
 
 const main = async () => {
@@ -104,7 +149,6 @@ const main = async () => {
 				processHref(node);
 				processMarketCap(node);
 			});
-
 			processMarketCap(record.target);
 		});
 	};
@@ -115,6 +159,10 @@ const main = async () => {
 		childList: true,
 		subtree: true,
 		characterData: true,
+	});
+
+	window.addEventListener('load', () => {
+		mountMemescopeMenu();
 	});
 };
 

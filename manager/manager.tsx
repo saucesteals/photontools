@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-
+import React, { useEffect, useRef, useState } from "react";
 import type { Wallet } from "~photon/photon";
 import { getRelayPreference, updateRelayPreferences } from "~storage/relay";
 import { WalletsTable } from "./table";
