@@ -1,4 +1,5 @@
 import type { PlasmoCSConfig } from "plasmo";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import { createLogger } from "~logging";
 import { WalletManager } from "~manager/manager";
@@ -8,7 +9,6 @@ import { getEventsHistory } from "~photon/events";
 import { type Wallet, getPoolId } from "~photon/photon";
 import { getRelayPreference } from "~storage/relay";
 import { Chart } from "~tradingview/chart";
-import React from "react";
 
 const log = createLogger("contents/chart");
 
