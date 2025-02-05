@@ -12,11 +12,11 @@
 3. Drop the downloaded ZIP file into the page to install the extension.
 
 ## Features
-### Live display of the buys and sells of unlimited wallets embedded in the chart
+### Wallet Tracker
 
 <img src="./assets/tracker.png" alt="tracker" />
 
-### Highlights coins currently above $70K in market cap
+### Memescope Helpers
 
 <img src="./assets/memescope.png" alt="memescope" height="500px" />
 

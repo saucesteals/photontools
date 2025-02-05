@@ -26,9 +26,15 @@ declare global {
 	}
 }
 
+export interface BorderWidth {
+	width: number;
+	hoverWidth: number;
+}
+
 export interface Mark {
 	id: string;
 	time: number;
+	imageUrl?: string;
 	labelFontColor: string;
 	minSize: number;
 	data: MarkData;

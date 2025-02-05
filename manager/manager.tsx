@@ -1,92 +1,83 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Wallet } from "~photon/photon";
+import { getRelayPreference, updateRelayPreferences } from "~storage/relay";
+import { WalletsTable } from "./table";
+import { TrashButton } from "./trash";
 
-export const WalletManagerTab = ({ onClick }: { onClick: () => void }) => {
-	const [isOpen, setIsOpen] = useState(false);
-
-	const toggleOpen = () => {
-		setIsOpen(!isOpen);
-		onClick();
-	};
-
-	return (
-		<div
-			style={{
-				color: isOpen ? "#fff" : "rgb(181, 183, 218)",
-				fontWeight: isOpen ? 600 : 500,
-				alignItems: "center",
-				borderBottom: `2px solid ${isOpen ? "#fff" : "transparent"}`,
-				cursor: "pointer",
-				display: "inline-flex",
-				fontSize: "14px",
-				marginBottom: "-1px",
-				paddingBottom: "12px",
-				whiteSpace: "nowrap",
-			}}
-			onClick={toggleOpen}
-		>
-			<div
-				className="c-icon"
-				data-icon="user-octagon"
-				style={{
-					height: "16px",
-					marginRight: "6px",
-					minWidth: "16px",
-					width: "16px",
-				}}
-			/>
-			<span>Track Wallets</span>
-		</div>
-	);
+type Props = {
+	onWalletsChange: (wallets: Wallet[]) => void;
 };
 
-export const WalletManager = () => {
+const blobToDataUrl = (blob: Blob) => {
+	return new Promise<string>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onloadend = () => {
+			resolve(reader.result as string);
+		};
+		reader.onerror = reject;
+		reader.readAsDataURL(blob);
+	});
+};
+
+const getUsernameAvatar = async (username: string) => {
+	const response = await fetch(`https://unavatar.io/x/${username}`);
+	if (!response.ok) {
+		return null;
+	}
+
+	const blob = await response.blob();
+	return blobToDataUrl(blob);
+};
+
+export const WalletManager = ({ onWalletsChange }: Props) => {
 	const [wallets, setWallets] = useState<Wallet[]>([]);
+
 	const [newWallet, setNewWallet] = useState<Partial<Wallet>>({});
 	const [isSymbolEdited, setIsSymbolEdited] = useState(false);
+	const [isImageEdited, setIsImageEdited] = useState(false);
+	const [minMarkSize, setMinMarkSize] = useState(35);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	const onWalletsChange = (wallets: Wallet[]) => {
-		window.postMessage({ type: "SET_WALLETS", wallets: wallets }, "*");
-	};
+	const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
 	useEffect(() => {
-		chrome.runtime.sendMessage({ type: "GET_WALLETS" }, (response) => {
-			setWallets(response);
-			onWalletsChange(response);
-		});
+		const init = async () => {
+			const wallets = await getRelayPreference("wallets");
+			setWallets(wallets);
+			onWalletsChange(wallets);
+			setMinMarkSize(await getRelayPreference("minMarkSize"));
+		};
+
+		init();
 	}, []);
 
-	useEffect(() => {
-		const handleMessage = (event: MessageEvent) => {
-			if (event.data.type === "CHART_INITIALIZED") {
-				onWalletsChange(wallets);
-			}
-		};
+	const saveWallets = async (updatedWallets: Wallet[]) => {
+		await updateRelayPreferences({ wallets: updatedWallets });
+		setWallets(updatedWallets);
+		onWalletsChange(updatedWallets);
+	};
 
-		window.addEventListener("message", handleMessage);
-		return () => {
-			window.removeEventListener("message", handleMessage);
-		};
-	}, [wallets]);
+	const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) {
+			return;
+		}
 
-	const saveWallets = (updatedWallets: Wallet[]) => {
-		chrome.runtime.sendMessage(
-			{ type: "SET_WALLETS", wallets: updatedWallets },
-			() => {
-				setWallets(updatedWallets);
-				onWalletsChange(updatedWallets);
-			},
-		);
+		const imageUrl = await blobToDataUrl(file);
+		setNewWallet({ ...newWallet, imageUrl });
+		setIsImageEdited(true);
 	};
 
 	const addWallet = () => {
 		if (!newWallet.address || !newWallet.nickname || !newWallet.symbol) return;
+
 		const wallet: Wallet = {
 			address: newWallet.address,
 			nickname: newWallet.nickname,
 			symbol: newWallet.symbol,
-			color: "#A5D6A7",
+			imageUrl: newWallet.imageUrl,
+			color: "#0C9981",
 		};
 
 		if (wallets.find((w) => w.address === wallet.address)) {
@@ -105,11 +96,26 @@ export const WalletManager = () => {
 		saveWallets(updatedWallets);
 	};
 
-	const updateWalletColor = (address: string, newColor: string) => {
+	const updateWallet = (wallet: Wallet) => {
 		const updatedWallets = wallets.map((w) =>
-			w.address === address ? { ...w, color: newColor } : w,
+			w.address === wallet.address ? wallet : w,
 		);
 		saveWallets(updatedWallets);
+	};
+
+	const debouncedGetUsernameAvatar = (nickname: string) => {
+		if (debounceTimeout.current) {
+			clearTimeout(debounceTimeout.current);
+		}
+
+		debounceTimeout.current = setTimeout(async () => {
+			if (!isImageEdited) {
+				const avatarUrl = await getUsernameAvatar(nickname);
+				if (avatarUrl) {
+					setNewWallet((prev) => ({ ...prev, imageUrl: avatarUrl }));
+				}
+			}
+		}, 300);
 	};
 
 	return (
@@ -124,160 +130,194 @@ export const WalletManager = () => {
 				gap: "1rem",
 			}}
 		>
+			<style>
+				{`
+					.wallet-image:hover {
+						transform: scale(1.1);
+					}
+						
+					.add-wallet-button:disabled {
+						background: #2a2b31;
+						cursor: not-allowed;
+					}
+				`}
+			</style>
 			<div style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
 				Track Wallets
 			</div>
+
+			<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+				<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+					<input
+						type="text"
+						value={newWallet.nickname}
+						onChange={(e) => {
+							const nickname = e.target.value;
+							setNewWallet({
+								...newWallet,
+								nickname: nickname,
+								symbol: isSymbolEdited
+									? newWallet.symbol
+									: nickname.slice(0, 3),
+							});
+							debouncedGetUsernameAvatar(nickname);
+						}}
+						placeholder="Nickname"
+						style={{
+							background: "#181921",
+							marginRight: "0.5rem",
+							padding: "8px",
+							paddingLeft: "12px",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: "100px",
+							color: "rgb(242, 245, 249)",
+						}}
+					/>
+
+					<input
+						type="text"
+						value={newWallet.symbol}
+						onChange={(e) => {
+							setNewWallet({ ...newWallet, symbol: e.target.value });
+							setIsSymbolEdited(true);
+						}}
+						placeholder="Symbol"
+						style={{
+							background: "#181921",
+							marginRight: "0.5rem",
+							padding: "8px",
+							paddingLeft: "12px",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: "100px",
+							color: "rgb(242, 245, 249)",
+						}}
+					/>
+
+					<input
+						type="text"
+						value={newWallet.address}
+						onChange={(e) =>
+							setNewWallet({ ...newWallet, address: e.target.value })
+						}
+						placeholder="Wallet Address"
+						style={{
+							background: "#181921",
+							width: "350px",
+							marginRight: "0.5rem",
+							padding: "8px",
+							paddingLeft: "12px",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: "100px",
+							color: "rgb(242, 245, 249)",
+						}}
+					/>
+				</div>
+
+				<div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+					<button
+						onClick={addWallet}
+						disabled={
+							!newWallet.address || !newWallet.nickname || !newWallet.symbol
+						}
+						className="add-wallet-button"
+						style={{
+							padding: "8px 16px",
+							backgroundColor: "#2a2b31",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: "100px",
+							background: "rgb(106, 96, 232)",
+							color: "rgb(242, 245, 249)",
+							cursor: "pointer",
+						}}
+					>
+						Add
+					</button>
+
+					<input
+						type="file"
+						accept="image/*"
+						onChange={handleImageUpload}
+						ref={fileInputRef}
+						style={{ display: "none" }}
+					/>
+					<button
+						onClick={() => fileInputRef.current?.click()}
+						style={{
+							padding: "8px 16px",
+							backgroundColor: "#2a2b31",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: "100px",
+							color: "rgb(242, 245, 249)",
+							cursor: "pointer",
+							marginRight: "0.5rem",
+						}}
+					>
+						Upload Image
+					</button>
+
+					{newWallet.imageUrl && (
+						<div
+							style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+						>
+							<img
+								src={newWallet.imageUrl}
+								style={{
+									width: "25px",
+									height: "25px",
+									borderRadius: "50%",
+									objectFit: "cover",
+								}}
+								alt="Preview"
+							/>
+
+							<TrashButton
+								onClick={() => {
+									setNewWallet({ ...newWallet, imageUrl: undefined });
+									if (fileInputRef.current) {
+										fileInputRef.current.value = "";
+									}
+								}}
+							/>
+						</div>
+					)}
+				</div>
+			</div>
+
 			<div>
-				<input
-					type="text"
-					value={newWallet.nickname}
-					onChange={(e) => {
-						setNewWallet({
-							...newWallet,
-							nickname: e.target.value,
-							symbol: isSymbolEdited
-								? newWallet.symbol
-								: e.target.value.slice(0, 3),
-						});
-					}}
-					placeholder="Nickname"
-					style={{
-						background: "#181921",
-						marginRight: "0.5rem",
-						padding: "8px",
-						paddingLeft: "12px",
-						border: "1px solid rgba(255,255,255,0.1)",
-						borderRadius: "100px",
-						color: "rgb(242, 245, 249)",
-					}}
-				/>
-
-				<input
-					type="text"
-					value={newWallet.symbol}
-					onChange={(e) => {
-						setNewWallet({ ...newWallet, symbol: e.target.value });
-						setIsSymbolEdited(true);
-					}}
-					placeholder="Symbol"
-					style={{
-						background: "#181921",
-						marginRight: "0.5rem",
-						padding: "8px",
-						paddingLeft: "12px",
-						border: "1px solid rgba(255,255,255,0.1)",
-						borderRadius: "100px",
-						color: "rgb(242, 245, 249)",
-					}}
-				/>
-
-				<input
-					type="text"
-					value={newWallet.address}
-					onChange={(e) =>
-						setNewWallet({ ...newWallet, address: e.target.value })
-					}
-					placeholder="Wallet Address"
-					style={{
-						background: "#181921",
-						width: "350px",
-						marginRight: "0.5rem",
-						padding: "8px",
-						paddingLeft: "12px",
-						border: "1px solid rgba(255,255,255,0.1)",
-						borderRadius: "100px",
-						color: "rgb(242, 245, 249)",
-					}}
-				/>
-
 				<button
-					onClick={addWallet}
+					onClick={() => {
+						const newSize = prompt(
+							"Enter new mark size (refresh required):",
+							minMarkSize.toString(),
+						);
+						if (newSize) {
+							const size = Number.parseInt(newSize, 10);
+							if (!Number.isNaN(size)) {
+								updateRelayPreferences({ minMarkSize: size });
+							} else {
+								alert("Invalid size entered. Please enter a number.");
+							}
+						}
+					}}
 					style={{
 						padding: "8px 16px",
 						backgroundColor: "#2a2b31",
 						border: "1px solid rgba(255,255,255,0.1)",
 						borderRadius: "100px",
-						background: "rgb(106, 96, 232)",
 						color: "rgb(242, 245, 249)",
 						cursor: "pointer",
+						marginRight: "0.5rem",
 					}}
 				>
-					Add
+					Update Mark Size
 				</button>
 			</div>
 
-			<div style={{ maxHeight: "200px", overflowY: "auto" }}>
-				{wallets.map((wallet) => (
-					<div
-						key={wallet.address}
-						style={{
-							display: "flex",
-							alignItems: "center",
-							padding: "0.5rem",
-							borderBottom: "1px solid #3a3b41",
-						}}
-					>
-						<div style={{ flex: 1 }}>
-							<div
-								style={{
-									display: "flex",
-									alignItems: "center",
-									gap: "0.5rem",
-								}}
-							>
-								<input
-									type="color"
-									value={wallet.color}
-									onChange={(e) =>
-										updateWalletColor(wallet.address, e.target.value)
-									}
-									style={{
-										padding: "0",
-										width: "25px",
-										height: "25px",
-										backgroundColor: "transparent",
-										border: "none",
-										borderRadius: "4px",
-										cursor: "pointer",
-									}}
-								/>
-								<span>
-									{wallet.nickname} ({wallet.symbol})
-								</span>
-							</div>
-							<div style={{ fontSize: "0.8rem", color: "#888" }}>
-								{wallet.address}
-							</div>
-						</div>
-						<button
-							onClick={() => removeWallet(wallet.address)}
-							style={{
-								padding: "0.25rem 0.5rem",
-								backgroundColor: "#ff4444",
-								border: "none",
-								borderRadius: "4px",
-								color: "white",
-								cursor: "pointer",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-							}}
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								x="0px"
-								y="0px"
-								width="16"
-								height="16"
-								viewBox="0 0 48 48"
-								fill="white"
-							>
-								<path d="M 24 4 C 20.491685 4 17.570396 6.6214322 17.080078 10 L 6.5 10 A 1.50015 1.50015 0 1 0 6.5 13 L 8.6367188 13 L 11.15625 39.029297 C 11.43025 41.862297 13.785813 44 16.632812 44 L 31.367188 44 C 34.214187 44 36.56875 41.862297 36.84375 39.029297 L 39.363281 13 L 41.5 13 A 1.50015 1.50015 0 1 0 41.5 10 L 30.919922 10 C 30.429604 6.6214322 27.508315 4 24 4 z M 24 7 C 25.879156 7 27.420767 8.2681608 27.861328 10 L 20.138672 10 C 20.579233 8.2681608 22.120844 7 24 7 z M 19.5 18 C 20.328 18 21 18.671 21 19.5 L 21 34.5 C 21 35.329 20.328 36 19.5 36 C 18.672 36 18 35.329 18 34.5 L 18 19.5 C 18 18.671 18.672 18 19.5 18 z M 28.5 18 C 29.328 18 30 18.671 30 19.5 L 30 34.5 C 30 35.329 29.328 36 28.5 36 C 27.672 36 27 35.329 27 34.5 L 27 19.5 C 27 18.671 27.672 18 28.5 18 z" />
-							</svg>
-						</button>
-					</div>
-				))}
-			</div>
+			<WalletsTable
+				wallets={wallets}
+				updateWallet={updateWallet}
+				removeWallet={removeWallet}
+			/>
 		</div>
 	);
 };

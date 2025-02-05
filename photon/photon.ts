@@ -13,6 +13,7 @@ export interface Wallet {
 	nickname: string;
 	symbol: string;
 	color: string;
+	imageUrl?: string;
 }
 
 export const parseHumanReadableNumber = (text: string) => {
