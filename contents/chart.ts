@@ -8,6 +8,7 @@ import { getEventsHistory } from "~photon/events";
 import { type Wallet, getPoolId } from "~photon/photon";
 import { getRelayPreference } from "~storage/relay";
 import { Chart } from "~tradingview/chart";
+import React from "react";
 
 const log = createLogger("contents/chart");
 
