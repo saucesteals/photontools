@@ -18,7 +18,7 @@
 
 ### Memescope Helpers
 
-<img src="./assets/memescope.png" alt="memescope" height="500px" />
+<img src="./assets/memescope.png" alt="memescope" />
 
 ---
 
