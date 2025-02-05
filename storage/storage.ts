@@ -8,11 +8,15 @@ export const storage = new Storage({
 export type Preferences = {
 	wallets: Wallet[];
 	minMarkSize: number;
+	colorPaletteIndex: number;
+	marketCap: number;
 };
 
 const defaultPreferences: Preferences = {
 	wallets: [],
 	minMarkSize: 35,
+	colorPaletteIndex: 0,
+	marketCap: 70_000,
 };
 
 export const updatePreferences = async (preferences: Partial<Preferences>) => {

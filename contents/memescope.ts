@@ -1,6 +1,11 @@
 import type { PlasmoCSConfig } from "plasmo";
+import React from "react";
+import { createRoot } from "react-dom/client";
 import { createLogger } from "~logging";
+import { MemeScope, type MemeScopeProps } from "~memescope/memescope";
+import { palettes } from "~memescope/palettes";
 import { parseHumanReadableNumber } from "~photon/photon";
+import { getRelayPreference } from "~storage/relay";
 
 const log = createLogger("contents/memescope");
 
@@ -9,7 +14,10 @@ export const config: PlasmoCSConfig = {
 	world: "MAIN",
 };
 
-const BORDER_MARKET_CAP_THRESHOLD = 70_000;
+let minMarketCap = 70_000;
+const setMarketCap = (marketCap: number) => {
+	minMarketCap = marketCap;
+};
 
 const processHref = (node: Node) => {
 	if (!(node instanceof HTMLDivElement)) {
@@ -44,7 +52,7 @@ const processHref = (node: Node) => {
 	processMarketCap(mktCap);
 };
 
-const processMarketCap = (node: Node) => {
+const processMarketCap = async (node: Node) => {
 	if (node instanceof Text) {
 		if (!node.parentNode) {
 			return;
@@ -86,10 +94,10 @@ const processMarketCap = (node: Node) => {
 		throw new Error("Invalid market cap value");
 	}
 
-	if (marketCapValue >= BORDER_MARKET_CAP_THRESHOLD) {
+	if (marketCapValue >= minMarketCap) {
 		container.style.border = "2px solid";
 		container.style.borderImage =
-			"linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet) 1";
+			"linear-gradient(to right, var(--color-palette-1), var(--color-palette-2), var(--color-palette-3), var(--color-palette-4), var(--color-palette-5)) 1";
 		container.style.boxShadow = "0 0 10px rgba(255, 255, 255, 0.5)";
 	} else {
 		container.style.border = "none";
@@ -97,14 +105,51 @@ const processMarketCap = (node: Node) => {
 	}
 };
 
+const renderMemescopeMenu = async (props: MemeScopeProps) => {
+	const body = document.querySelector(".c-body");
+	if (!body) throw new Error("No body found");
+
+	const child = body.children[4];
+	if (!child) throw new Error("No memescope menu child found");
+
+	let row: HTMLDivElement | null = null;
+	for (let i = 0; i < 100; i++) {
+		row = child.querySelector(".l-row.u-align-items-center.u-mb-xxs");
+		if (row) {
+			break;
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	}
+	if (!row) throw new Error("No row found");
+
+	const container = document.createElement("div");
+	row.appendChild(container);
+
+	createRoot(container).render(React.createElement(MemeScope, props));
+};
+
 const main = async () => {
+	const setPallete = (palette: string[]) => {
+		for (let i = 0; i < 5; i++) {
+			document.documentElement.style.setProperty(
+				`--color-palette-${i + 1}`,
+				palette[i],
+			);
+		}
+	};
+
+	setMarketCap(await getRelayPreference("marketCap"));
+
+	const palleteIndex = await getRelayPreference("colorPaletteIndex");
+	setPallete(palettes[palleteIndex]);
+
 	const callback = (records: MutationRecord[]) => {
 		records.forEach((record) => {
 			record.addedNodes.forEach((node) => {
 				processHref(node);
 				processMarketCap(node);
 			});
-
 			processMarketCap(record.target);
 		});
 	};
@@ -115,6 +160,11 @@ const main = async () => {
 		childList: true,
 		subtree: true,
 		characterData: true,
+	});
+
+	await renderMemescopeMenu({
+		onPaletteChange: setPallete,
+		onMarketCapChange: setMarketCap,
 	});
 };
 

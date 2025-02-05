@@ -35,20 +35,32 @@ export const parseHumanReadableNumber = (text: string) => {
 };
 
 export const formatHumanReadableNumber = (number: number | string) => {
+	let fmt: string;
+	let mod = "";
 	number = Number(number);
+	if (number === 0) {
+		fmt = "0";
+	}
 	if (number < 1) {
-		return number.toFixed(5);
+		fmt = number.toFixed(5);
+	} else if (number < 1000) {
+		fmt = number.toFixed(2);
+	} else if (number < 1000000) {
+		fmt = (number / 1000).toFixed(2);
+		mod = "K";
+	} else if (number < 1000000000) {
+		fmt = (number / 1000000).toFixed(2);
+		mod = "M";
+	} else {
+		fmt = (number / 1000000000).toFixed(2);
+		mod = "B";
 	}
-	if (number < 1000) {
-		return number.toFixed(2);
+
+	if (fmt.endsWith(".00")) {
+		fmt = fmt.slice(0, -3);
 	}
-	if (number < 1000000) {
-		return `${(number / 1000).toFixed(2)}K`;
-	}
-	if (number < 1000000000) {
-		return `${(number / 1000000).toFixed(2)}M`;
-	}
-	return `${(number / 1000000000).toFixed(2)}B`;
+
+	return `${fmt}${mod}`;
 };
 
 export const getPoolId = () => {
