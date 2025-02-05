@@ -8,8 +8,21 @@ const log = createLogger("tradingview/chart");
 
 export class Chart {
 	private marks: Mark[];
-	constructor() {
+	private minMarkSize: number;
+
+	constructor(minMarkSize: number) {
 		this.marks = [];
+		this.minMarkSize = minMarkSize;
+	}
+
+	getMarks() {
+		return this.marks;
+	}
+
+	setMarks(marks: Mark[]) {
+		log.log("Setting marks", marks);
+		this.marks = marks;
+		this.refresh();
 	}
 
 	addMark(mark: Mark) {
@@ -19,7 +32,7 @@ export class Chart {
 	}
 
 	addTrade(wallet: Wallet, swap: Swap) {
-		const background = swap.type === "buy" ? wallet.color : "#FF0000";
+		const background = swap.type === "buy" ? wallet.color : "#F23645";
 		const text = `#${(0xffffff ^ Number.parseInt(background.slice(1), 16))
 			.toString(16)
 			.padStart(6, "0")}`;
@@ -28,7 +41,8 @@ export class Chart {
 			id: swap.id,
 			time: swap.timestamp,
 			labelFontColor: text,
-			minSize: 35,
+			imageUrl: wallet.imageUrl,
+			minSize: this.minMarkSize,
 			data: {
 				type: swap.type,
 				timestamp: swap.timestamp,
@@ -42,7 +56,7 @@ export class Chart {
 			},
 			color: {
 				background: background,
-				border: "#010101",
+				border: wallet.imageUrl ? background : "#010101",
 			},
 			label: wallet.symbol,
 			text: [
