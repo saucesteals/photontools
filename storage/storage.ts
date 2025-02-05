@@ -34,8 +34,3 @@ export const getPreference = async <T extends keyof Preferences>(
 
 	return value;
 };
-
-export const getColorPaletteIndex = async (): Promise<number> => {
-	const index = await getPreference("colorPaletteIndex");
-	return index;
-};
