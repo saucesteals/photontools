@@ -135,6 +135,9 @@ export function MemeScope({
 							style={{
 								width: "100%",
 								height: "10px",
+								border: "1px solid white",
+								borderRadius: "5px",
+								accentColor: "#6A60E8",
 							}}
 						/>
 					</div>
