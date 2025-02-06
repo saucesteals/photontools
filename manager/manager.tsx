@@ -31,11 +31,12 @@ const getUsernameAvatar = async (username: string) => {
 
 export const WalletManager = ({ onWalletsChange }: Props) => {
 	const [wallets, setWallets] = useState<Wallet[]>([]);
-
 	const [newWallet, setNewWallet] = useState<Partial<Wallet>>({});
 	const [isSymbolEdited, setIsSymbolEdited] = useState(false);
 	const [isImageEdited, setIsImageEdited] = useState(false);
 	const [minMarkSize, setMinMarkSize] = useState(35);
+	const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+	const [bulkImportText, setBulkImportText] = useState("");
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -115,6 +116,33 @@ export const WalletManager = ({ onWalletsChange }: Props) => {
 				}
 			}
 		}, 300);
+	};
+
+	const handleBulkImport = () => {
+		const lines = bulkImportText.split("\n");
+		const newWallets: Wallet[] = [];
+
+		for (const line of lines) {
+			const [address, nickname] = line.split(" ");
+			if (address && nickname) {
+				const wallet: Wallet = {
+					address,
+					nickname,
+					symbol: nickname.slice(0, 3),
+					color: "#0C9981",
+				};
+				if (!wallets.find((w) => w.address === wallet.address)) {
+					newWallets.push(wallet);
+				}
+			}
+		}
+
+		if (newWallets.length > 0) {
+			saveWallets([...wallets, ...newWallets]);
+		}
+
+		setIsBulkImportOpen(false);
+		setBulkImportText("");
 	};
 
 	return (
@@ -254,6 +282,20 @@ export const WalletManager = ({ onWalletsChange }: Props) => {
 						Upload Image
 					</button>
 
+					<button
+						onClick={() => setIsBulkImportOpen(true)}
+						style={{
+							padding: "8px 16px",
+							backgroundColor: "#2a2b31",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: "100px",
+							color: "rgb(242, 245, 249)",
+							cursor: "pointer",
+						}}
+					>
+						Bulk Import
+					</button>
+
 					{newWallet.imageUrl && (
 						<div
 							style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
@@ -281,6 +323,67 @@ export const WalletManager = ({ onWalletsChange }: Props) => {
 					)}
 				</div>
 			</div>
+
+			{isBulkImportOpen && (
+				<div
+					style={{
+						position: "fixed",
+						top: "50%",
+						left: "50%",
+						transform: "translate(-50%, -50%)",
+						backgroundColor: "#191A23",
+						padding: "1rem",
+						borderRadius: "8px",
+						boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+						zIndex: 1000,
+					}}
+				>
+					<h3 style={{ color: "white" }}>Bulk Import Wallets</h3>
+					<textarea
+						value={bulkImportText}
+						onChange={(e) => setBulkImportText(e.target.value)}
+						placeholder="wallet1 username1"
+						style={{
+							width: "100%",
+							height: "100px",
+							backgroundColor: "#181921",
+							color: "white",
+							border: "1px solid rgba(255,255,255,0.1)",
+							borderRadius: "8px",
+							padding: "8px",
+							marginBottom: "1rem",
+						}}
+					/>
+					<div style={{ display: "flex", justifyContent: "space-between" }}>
+						<button
+							onClick={handleBulkImport}
+							style={{
+								padding: "8px 16px",
+								backgroundColor: "#6a60e8",
+								border: "none",
+								borderRadius: "8px",
+								color: "white",
+								cursor: "pointer",
+							}}
+						>
+							Import
+						</button>
+						<button
+							onClick={() => setIsBulkImportOpen(false)}
+							style={{
+								padding: "8px 16px",
+								backgroundColor: "#e74c3c",
+								border: "none",
+								borderRadius: "8px",
+								color: "white",
+								cursor: "pointer",
+							}}
+						>
+							Cancel
+						</button>
+					</div>
+				</div>
+			)}
 
 			<div>
 				<button
