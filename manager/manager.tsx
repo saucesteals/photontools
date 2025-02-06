@@ -118,7 +118,7 @@ export const WalletManager = ({ onWalletsChange }: Props) => {
 		}, 300);
 	};
 
-	const handleBulkImport = () => {
+	const handleBulkImport = async () => {
 		const lines = bulkImportText.split("\n");
 		const newWallets: Wallet[] = [];
 
@@ -130,6 +130,7 @@ export const WalletManager = ({ onWalletsChange }: Props) => {
 					nickname,
 					symbol: nickname.slice(0, 3),
 					color: "#0C9981",
+					imageUrl: (await getUsernameAvatar(nickname)) ?? undefined,
 				};
 				if (!wallets.find((w) => w.address === wallet.address)) {
 					newWallets.push(wallet);
