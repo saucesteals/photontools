@@ -94,11 +94,19 @@ const processMarketCap = async (node: Node) => {
 		throw new Error("Invalid market cap value");
 	}
 
+	const maxMarketCap = 1_000_000;
 	if (marketCapValue >= minMarketCap) {
-		container.style.border = "2px solid";
+		const visibilityFactor = Math.min(
+			(marketCapValue - minMarketCap) / (maxMarketCap - minMarketCap),
+			1,
+		);
+		const borderWidth = 0.5 + visibilityFactor * 3;
+		const boxShadowOpacity = 0.5 * visibilityFactor;
+
+		container.style.border = `${borderWidth}px solid`;
 		container.style.borderImage =
 			"linear-gradient(to right, var(--color-palette-1), var(--color-palette-2), var(--color-palette-3), var(--color-palette-4), var(--color-palette-5)) 1";
-		container.style.boxShadow = "0 0 10px rgba(255, 255, 255, 0.5)";
+		container.style.boxShadow = `0 0 10px rgba(255, 255, 255, ${boxShadowOpacity})`;
 	} else {
 		container.style.border = "none";
 		container.style.boxShadow = "none";

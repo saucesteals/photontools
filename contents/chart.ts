@@ -66,6 +66,7 @@ const renderToolsUI = async (onWalletsChange: (wallets: Wallet[]) => void) => {
 
 const main = async () => {
 	const cable = new Cable();
+	cable.connect();
 
 	const minMarkSize = await getRelayPreference("minMarkSize");
 
