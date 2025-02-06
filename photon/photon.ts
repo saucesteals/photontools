@@ -3,6 +3,7 @@ declare global {
 		taConfig: {
 			show: {
 				"pool-id": number;
+				"pump-pool_id": number | null;
 			};
 		};
 	}
@@ -63,6 +64,16 @@ export const formatHumanReadableNumber = (number: number | string) => {
 	return `${fmt}${mod}`;
 };
 
-export const getPoolId = () => {
+export const getCurrentPoolId = () => {
 	return window.taConfig.show["pool-id"] as number;
+};
+
+export const getAllPoolIds = () => {
+	const poolIds = [getCurrentPoolId()];
+	const pumpfunPoolId = window.taConfig.show["pump-pool_id"];
+	if (pumpfunPoolId) {
+		poolIds.push(pumpfunPoolId);
+	}
+
+	return poolIds;
 };

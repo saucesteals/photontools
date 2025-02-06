@@ -6,7 +6,7 @@ import { WalletManager } from "~manager/manager";
 import { WalletManagerTab } from "~manager/tab";
 import { Cable, type Swap } from "~photon/cable";
 import { getEventsHistory } from "~photon/events";
-import { type Wallet, getPoolId } from "~photon/photon";
+import { type Wallet, getAllPoolIds } from "~photon/photon";
 import { getRelayPreference } from "~storage/relay";
 import { Chart } from "~tradingview/chart";
 
@@ -94,10 +94,12 @@ const main = async () => {
 				return;
 			}
 
-			const history = await getEventsHistory(getPoolId(), wallet.address);
-			log.log("History", wallet.nickname, history);
-			history.forEach((swap) => {
-				chart.addTrade(wallet, swap);
+			getAllPoolIds().forEach(async (poolId) => {
+				const history = await getEventsHistory(poolId, wallet.address);
+				log.log("History", wallet.nickname, history);
+				history.forEach((swap) => {
+					chart.addTrade(wallet, swap);
+				});
 			});
 		});
 	});

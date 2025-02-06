@@ -1,5 +1,5 @@
 import { createLogger } from "~logging";
-import { getPoolId } from "./photon";
+import { getCurrentPoolId } from "./photon";
 
 const log = createLogger("photon/cable");
 
@@ -10,7 +10,7 @@ export class Cable extends EventTarget {
 
 		ws.onopen = () => {
 			log.log("Connected to TinyAstro");
-			const poolId = getPoolId();
+			const poolId = getCurrentPoolId();
 			ws.send(
 				JSON.stringify({
 					command: "subscribe",
